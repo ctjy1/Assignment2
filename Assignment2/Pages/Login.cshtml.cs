@@ -10,6 +10,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.Extensions.Logging;
 using System.Text.Json;
+using System.Net.Mail;
 
 namespace Assignment2.Pages
 {
@@ -59,6 +60,30 @@ namespace Assignment2.Pages
                     await LogAuditAsync(user.Id, $"User {user.Email} logged in successfully.");
                     return RedirectToPage("/Index");
                 }
+            }
+
+            else if (identityResult.RequiresTwoFactor)
+            {
+                var existingUser = await _userManager.FindByEmailAsync(LModel.Email);
+                if (existingUser == null)
+                {
+                    ModelState.AddModelError("Email", "Email Does Not Exist.");
+                    return Page();
+                }
+
+                var code = await _userManager.GenerateTwoFactorTokenAsync(existingUser, "Email");
+
+                var message = $"Your one-time verification code is: {code}";
+
+                var client = new SmtpClient("smtp.gmail.com", 587)
+                {
+                    Credentials = new NetworkCredential("leecalista284@gmail.com", "xjow iese titc vrqd"),
+                    EnableSsl = true
+                };
+
+                MailMessage mail = new MailMessage("freshfarmmarket@gmail.com", LModel.Email, "2FA Code", message);
+                client.Send(mail);
+                return RedirectToPage("Login", new { Email = LModel.Email });
             }
             else if (identityResult.IsLockedOut)
             {

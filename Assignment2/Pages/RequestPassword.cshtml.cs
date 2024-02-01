@@ -1,32 +1,26 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using Assignment2.Services; // Make sure this matches the namespace of your IEmailSender
-using Assignment2.ViewModels; // This is where your ViewModel is located
 using System.Threading.Tasks;
+using System.Text.Encodings.Web;
 using Assignment2.Model;
 
 namespace Assignment2.Pages
 {
+    [ValidateAntiForgeryToken]
     public class RequestPasswordModel : PageModel
     {
+        private readonly UserManager<ApplicationUser> userManager;
+        private readonly IEmailService emailService;
 
-        private readonly UserManager<ApplicationUser> _userManager;
-        private readonly IEmailSender _emailSender;
+        public RequestPasswordModel(UserManager<ApplicationUser> userManager, IEmailService emailService)
+        {
+            this.userManager = userManager;
+            this.emailService = emailService;
+        }
 
         [BindProperty]
-        public PasswordResetRequestModel PasswordResetRequest { get; set; }
-
-
-        public RequestPasswordModel(UserManager<ApplicationUser> userManager, IEmailSender emailSender)
-        {
-            _userManager = userManager;
-            _emailSender = emailSender;
-        }
-
-        public void OnGet()
-        {
-        }
+        public string Email { get; set; }
 
         public async Task<IActionResult> OnPostAsync()
         {
@@ -35,28 +29,50 @@ namespace Assignment2.Pages
                 return Page();
             }
 
-            var user = await _userManager.FindByEmailAsync(PasswordResetRequest.Email);
-            if (user == null || !(await _userManager.IsEmailConfirmedAsync(user)))
+            var user = await userManager.FindByEmailAsync(Email);
+            if (user == null)
             {
-                // Don't reveal that the user does not exist or is not confirmed
-                return RedirectToPage("./ResetRequestConfirmation");
+                // To avoid user enumeration, you might still want to redirect to a confirmation page
+                return RedirectToPage("ResetRequestConfirmation");
             }
 
-            var code = await _userManager.GeneratePasswordResetTokenAsync(user);
-            System.Diagnostics.Debug.WriteLine($"Password reset token for {user.Email}: {code}");
+            var token = await userManager.GeneratePasswordResetTokenAsync(user);
+            var resetLink = GenerateResetLink(user, token);
+            if (resetLink == null)
+            {
+                // Handle the case where the reset link could not be generated
+                ModelState.AddModelError("", "Error generating password reset link.");
+                return Page();
+            }
+            await SendResetEmailAsync(Email, resetLink);
 
-            var callbackUrl = Url.Page(
+            return RedirectToPage("ResetRequestConfirmation");
+        }
+
+        private string GenerateResetLink(ApplicationUser user, string token)
+        {
+            return Url.Page(
                 "/ResetPassword",
                 pageHandler: null,
-                values: new { area = "Identity", code },
+                values: new { email = user.Email, code = token }, // Ensure 'code' matches the expected query parameter in the OnGet
                 protocol: Request.Scheme);
+        }
 
-            await _emailSender.SendEmailAsync(
-                PasswordResetRequest.Email,
-                "Reset Password",
-                $"Please reset your password by clicking here: <a href='{callbackUrl}'>link</a>");
 
-            return RedirectToPage("./ResetRequestConfirmation");
+        private async Task SendResetEmailAsync(string email, string link)
+        {
+            if (string.IsNullOrWhiteSpace(link))
+            {
+                throw new ArgumentNullException(nameof(link));
+            }
+
+            var encodedLink = HtmlEncoder.Default.Encode(link);
+            var message = $"Please reset your password by clicking here: <a href='{encodedLink}'>link</a>";
+            await emailService.SendEmailAsync("freshfarmmarket@mail.com", email, "Reset Password Link", message);
+        }
+
+        public void OnGet()
+        {
         }
     }
 }

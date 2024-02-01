@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Identity;
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Assignment2.Model
 {
@@ -24,5 +25,9 @@ namespace Assignment2.Model
 
         [RegularExpression(@"^.+$", ErrorMessage = "Invalid characters in About Me")]
         public string AboutMe { get; set; }
+
+        public DateTime LastPasswordChangeDate { get; set; }
+        [NotMapped]
+        public List<string> OldPasswords { get; set; } // Store hashes of last 2 passwords
     }
 }

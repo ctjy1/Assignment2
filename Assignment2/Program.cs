@@ -35,6 +35,7 @@ builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
 .AddEntityFrameworkStores<AuthDbContext>()
 .AddDefaultTokenProviders();
 
+
 builder.Services.ConfigureApplicationCookie(config =>
 {
     config.LoginPath = "/Login";
@@ -55,10 +56,12 @@ builder.Services.AddDataProtection()
     .PersistKeysToFileSystem(new DirectoryInfo("/path/to/secure/directory"))
     .SetApplicationName("YourAppName");
 
+
 builder.Services.Configure<SmtpSettings>(builder.Configuration.GetSection("SmtpSettings"));
-builder.Services.AddTransient<IEmailSender, EmailSender>();
+builder.Services.AddTransient<IEmailService, EmailService>();
 
 builder.Services.AddScoped<AuditLog>();
+builder.Logging.AddConsole();
 
 var app = builder.Build();
 

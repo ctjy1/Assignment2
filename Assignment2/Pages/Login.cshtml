@@ -2,7 +2,7 @@
 @model Assignment2.Pages.LoginModel
 @{
     var hasErrors = ViewData.ModelState?.IsValid == false && ViewData.ModelState?.ErrorCount > 0;
-var errorMessage = hasErrors ? ViewData.ModelState?[""]?.Errors.FirstOrDefault()?.ErrorMessage : "";
+    var errorMessage = hasErrors ? ViewData.ModelState?[""]?.Errors.FirstOrDefault()?.ErrorMessage : "";
 
 }
 
@@ -44,7 +44,10 @@ var errorMessage = hasErrors ? ViewData.ModelState?[""]?.Errors.FirstOrDefault()
 					<label class="form-check-label" asp-for="LModel.RememberMe">Remember Me?</label>
 				</div
 
-                 
+                    <!-- Forgot Password Link -->
+            <div class="mb-3">
+                <a href="/RequestPassword" class="text-decoration-none">Forgot Password?</a>
+            </div>
 
                 <input type="hidden" id="recaptchaResponse" name="recaptcha_response">
 
